@@ -1,0 +1,200 @@
+/* Canvas View Styles */
+.canvas-container {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.canvas-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0; /* Allow shrinking */
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.save-indicator {
+  color: var(--success);
+  margin-left: 4px;
+}
+
+.file-path {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.no-file {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Loading Styles */
+.canvas-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  height: 100%;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.canvas-flow {
+  background: var(--bg-primary);
+  flex: 1;
+}
+
+/* ReactFlow theme customization */
+.canvas-flow .react-flow__pane {
+  background: var(--bg-primary);
+}
+
+.canvas-flow .react-flow__edge {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.canvas-flow .react-flow__edge.selected {
+  stroke: var(--accent-hover);
+  stroke-width: 3;
+}
+
+.canvas-flow .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.canvas-flow .react-flow__connectionline {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 5,5;
+}
+
+/* Controls styling */
+.canvas-controls {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  bottom: 20px;
+  left: 20px;
+}
+
+.canvas-controls button {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: none;
+  border-radius: 4px;
+  padding: 8px;
+  margin: 2px;
+  transition: all 0.2s ease;
+}
+
+.canvas-controls button:hover {
+  background: var(--hover);
+  color: var(--accent);
+}
+
+/* MiniMap styling */
+.canvas-minimap {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  bottom: 20px;
+  right: 20px;
+  width: 200px;
+  height: 150px;
+}
+
+.canvas-minimap .react-flow__minimap-mask {
+  fill: var(--accent);
+  fill-opacity: 0.2;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.canvas-minimap .react-flow__minimap-node {
+  fill: var(--accent);
+  stroke: var(--border);
+}
+
+/* Background styling */
+.canvas-background {
+  background: var(--bg-primary);
+}
+
+.canvas-background .react-flow__background-pattern {
+  fill: var(--text-muted);
+  opacity: 0.3;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .canvas-controls {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .canvas-minimap {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .canvas-background .react-flow__background-pattern {
+  opacity: 0.4;
+}
+
+/* Selection styles */
+.react-flow__node.selected .custom-node {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-hover);
+}
+
+/* Connection animation */
+@keyframes flow {
+  0% {
+    stroke-dashoffset: 10;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.canvas-flow .react-flow__edge.animated {
+  stroke-dasharray: 5,5;
+  animation: flow 1s linear infinite;
+}

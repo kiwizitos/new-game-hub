@@ -1,0 +1,77 @@
+.markdown-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--bg-primary);
+}
+
+.editor-container {
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-container .cm-editor {
+  height: 100%;
+  width: 100%;
+  flex: 1;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.editor-container .cm-scroller {
+  flex: 1;
+  width: 100%;
+}
+
+.editor-container .cm-content {
+  min-height: 100%;
+  width: 100%;
+}
+
+.editor-container .cm-focused {
+  outline: none;
+}
+
+/* Custom scrollbar for editor */
+.editor-container .cm-scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.editor-container .cm-scroller::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.editor-container .cm-scroller::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.editor-container .cm-scroller::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .editor-container .cm-content {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .editor-container .cm-cursor {
+  border-left-color: var(--text-primary);
+}
+
+[data-theme="light"] .editor-container .cm-selectionBackground {
+  background-color: rgba(9, 105, 218, 0.2);
+}
+
+/* Dark theme is handled by oneDark theme from CodeMirror */

@@ -1,0 +1,101 @@
+/* Theme Variables */
+:root {
+  /* Light theme colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --text-muted: #adb5bd;
+  --border: #dee2e6;
+  --accent: #0066cc;
+  --accent-hover: #0052a3;
+  --warning: #fd7e14;
+  --success: #198754;
+  --danger: #dc3545;
+  --hover: #f8f9fa;
+}
+
+[data-theme="dark"] {
+  /* Dark theme colors */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #404040;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-muted: #808080;
+  --border: #404040;
+  --accent: #4da6ff;
+  --accent-hover: #66b3ff;
+  --warning: #ff9500;
+  --success: #32d74b;
+  --danger: #ff453a;
+  --hover: #333333;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+}
+
+.view-container {
+  flex: 1;
+  padding: 20px;
+  overflow: auto;
+  background-color: var(--bg-primary);
+}
+
+.view-container h2 {
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.view-container p {
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.file-explorer-view {
+  display: flex;
+  height: 100%;
+  background-color: var(--bg-primary);
+}
+
+/* Global button styles */
+.btn {
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-family: inherit;
+  padding: 8px 12px;
+}
+
+.btn:hover {
+  background: var(--hover);
+}
+
+.btn.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn.btn-primary:hover {
+  background: var(--accent-hover);
+}
