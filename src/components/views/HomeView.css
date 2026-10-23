@@ -1,6 +1,7 @@
 /* Home View Styles */
 .home-view {
-  padding: 40px 32px;
+  padding: 32px;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   height: 100%;
@@ -8,8 +9,37 @@
 }
 
 .home-header {
-  text-align: center;
-  margin-bottom: 48px;
+  padding: 32px;
+  text-align: left;
+  margin-bottom: 32px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: radial-gradient(ellipse at top right, var(--bg-tertiary), transparent), var(--bg-secondary);
+}
+
+.home-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 16px;
+}
+
+.workspace-location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.workspace-location svg {
+  flex-shrink: 0;
 }
 
 .home-title {
@@ -28,13 +58,12 @@
   color: var(--text-secondary);
   margin: 0;
   max-width: 600px;
-  margin: 0 auto;
 }
 
 .home-content {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 32px;
 }
 
 /* Sections */
@@ -57,7 +86,7 @@
 /* Quick Actions */
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 16px;
 }
 
@@ -87,18 +116,22 @@
 /* Features Grid */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
 }
 
 .feature-card {
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   padding: 24px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  text-align: center;
+  text-align: left;
   position: relative;
   overflow: hidden;
 }
@@ -130,7 +163,7 @@
   justify-content: center;
   width: 64px;
   height: 64px;
-  margin: 0 auto 16px;
+  margin: 0 0 16px;
   background: var(--bg-primary);
   border-radius: 12px;
   color: var(--feature-color);
@@ -156,6 +189,17 @@
   line-height: 1.5;
 }
 
+.feature-open {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 24px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* Recent Files */
 .recent-files {
   display: flex;
@@ -164,6 +208,9 @@
 }
 
 .recent-file-card {
+  font: inherit;
+  text-align: left;
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -180,7 +227,8 @@
   border-color: var(--accent);
 }
 
-.file-icon {
+.home-view .file-icon {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -190,32 +238,61 @@
   color: white;
 }
 
-.file-icon.markdown {
+.home-view .file-icon.markdown {
   background: #0066cc;
 }
 
-.file-icon.kanban {
+.home-view .file-icon.kanban {
   background: #28a745;
 }
 
-.file-icon.canvas {
+.home-view .file-icon.canvas {
   background: #6f42c1;
 }
 
-.file-info {
+.home-view .file-info {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.file-name {
+.home-view .file-name {
   font-weight: 500;
   color: var(--text-primary);
 }
 
-.file-modified {
+.home-view .file-modified {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+
+.recent-file-arrow {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.recent-empty {
+  padding: 28px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.recent-empty p {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.recent-empty span {
+  font-size: 13px;
 }
 
 /* Responsive */
@@ -226,6 +303,10 @@
   
   .home-title {
     font-size: 2rem;
+  }
+
+  .home-header {
+    padding: 24px 20px;
   }
   
   .quick-actions {

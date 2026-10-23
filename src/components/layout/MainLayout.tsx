@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ChevronLeft, ChevronRight, Folder } from 'lucide-react';
 import FileExplorer from '../sidebar/FileExplorer';
 import { useAppStore } from '../../stores/appStore';
@@ -9,16 +9,12 @@ interface MainLayoutProps {
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { setSelectedFile } = useAppStore();
+  const { setSelectedFile, selectedFile, sidebarVisible, toggleSidebar } = useAppStore();
+  const sidebarCollapsed = !sidebarVisible;
 
   const handleFileSelect = (filePath: string) => {
     setSelectedFile(filePath);
     console.log('Selected file:', filePath);
-  };
-
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
   };
 
   return (
@@ -34,16 +30,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             className="sidebar-toggle"
             onClick={toggleSidebar}
             title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!sidebarCollapsed}
           >
             {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
         </div>
         
-        {!sidebarCollapsed && (
-          <div className="sidebar-content">
-            <FileExplorer onFileSelect={handleFileSelect} />
+          <div className="sidebar-content" hidden={sidebarCollapsed}>
+            <FileExplorer onFileSelect={handleFileSelect} selectedFile={selectedFile} />
           </div>
-        )}
       </div>
 
       {/* Main Content */}

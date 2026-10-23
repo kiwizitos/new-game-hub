@@ -31,6 +31,7 @@ const Navigation: React.FC = () => {
               className={`nav-view-btn ${currentView === view.id ? 'active' : ''}`}
               onClick={() => switchToView(view.id)}
               title={view.title}
+              aria-current={currentView === view.id ? 'page' : undefined}
             >
               <IconComponent size={20} />
               <span>{view.title}</span>
@@ -44,6 +45,7 @@ const Navigation: React.FC = () => {
           className="theme-toggle"
           onClick={toggleTheme}
           title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {isDark ? <Sun size={20} /> : <Moon size={20} />}
         </button>

@@ -99,8 +99,17 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const handleFileDeleted = useCallback((filePath: string) => {
     console.log('File deleted:', filePath);
     refreshTree();
-    // If the deleted file was selected, clear selection
-    setSelectedFile(null);
+    const isAffected = (path: string) => {
+      const normalized = path.replace(/\\/g, '/');
+      const deleted = filePath.replace(/\\/g, '/').replace(/\/$/, '');
+      return normalized === deleted || normalized.startsWith(`${deleted}/`);
+    };
+    const store = useAppStore.getState();
+    for (const view of [AppView.EDITOR, AppView.KANBAN, AppView.CANVAS]) {
+      const file = store.viewSessions[view];
+      if (file && isAffected(file)) store.setViewSession(view, null);
+    }
+    if (store.selectedFile && isAffected(store.selectedFile)) setSelectedFile(null);
   }, [refreshTree, setSelectedFile]);
 
   const handleFileChanged = useCallback((filePath: string) => {
@@ -112,8 +121,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const handleFileRenamed = useCallback((oldPath: string, newPath: string) => {
     console.log('File renamed:', oldPath, '->', newPath);
     refreshTree();
-    // If the renamed file was selected, clear selection
-    setSelectedFile(null);
+    const renamedPath = (path: string) => {
+      const normalized = path.replace(/\\/g, '/');
+      const old = oldPath.replace(/\\/g, '/').replace(/\/$/, '');
+      if (normalized === old) return newPath;
+      if (normalized.startsWith(`${old}/`)) return newPath + normalized.slice(old.length);
+      return path;
+    };
+    const store = useAppStore.getState();
+    for (const view of [AppView.EDITOR, AppView.KANBAN, AppView.CANVAS]) {
+      const file = store.viewSessions[view];
+      if (file) store.setViewSession(view, renamedPath(file));
+    }
+    if (store.selectedFile) setSelectedFile(renamedPath(store.selectedFile));
   }, [refreshTree, setSelectedFile]);
 
   // Initialize file watcher for current root path
@@ -374,10 +394,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
             newName: newFileName
           });
 
-          // Atualizar o arquivo selecionado se for o que está sendo renomeado
-          if (selectedFile === filePath) {
-            onFileSelect?.(newPath);
-          }
+          handleFileRenamed(filePath, newPath);
 
           refreshTree();
           showAlert('Sucesso', `Arquivo renomeado para "${newFileName}"`, 'success');
