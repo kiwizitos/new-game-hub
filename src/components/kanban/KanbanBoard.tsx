@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DndContext, DragEndEvent, closestCorners } from '@dnd-kit/core';
 import { MoreVertical } from 'lucide-react';
 import { useKanbanStore } from '../../stores/kanbanStore';
@@ -9,84 +9,65 @@ import { useContextMenu } from '../../hooks/useContextMenu';
 import { KanbanCard } from '../../types/kanban';
 import KanbanColumn from './KanbanColumn.tsx';
 import KanbanDataManager from './KanbanDataManager.tsx';
+import KanbanColumnSettings from './KanbanColumnSettings';
 import ContextMenu from '../common/ContextMenu';
 import ViewPlaceholder from '../common/ViewPlaceholder';
 import FileService from '../../services/FileService';
 import './KanbanBoard.css';
 
 const KanbanBoard: React.FC = () => {
-  const { data, addCard, moveCard, deleteCard, updateCard, setKanbanData } = useKanbanStore();
   const { selectedFile } = useAppStore();
-  const { showConfirm } = usePopup();
-  const [currentFile, setCurrentFile] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const { contextMenu, showContextMenu, hideContextMenu } = useContextMenu();
+  if (!selectedFile?.endsWith('.kanban')) {
+    return <ViewPlaceholder type="kanban" title="Quadro Kanban"
+      description="Organize suas tarefas e projetos usando o método Kanban com colunas personalizáveis."
+      currentFile={null} expectedFileType=".kanban" />;
+  }
+  return <KanbanFile key={selectedFile} path={selectedFile} />;
+};
+
+const KanbanFile: React.FC<{ path: string }> = ({ path }) => {
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [error, setError] = useState('');
   const fileService = FileService.getInstance();
-
-  // Auto-save hook
-  const { isSaving } = useAutoSave(data, {
-    onSave: async () => {
-      if (!currentFile) return;
-      await fileService.createKanbanFile(currentFile, data);
-    },
-    enabled: !!currentFile,
-  });
-
-  // Load file when selectedFile changes
   useEffect(() => {
-    const loadFile = async () => {
-      if (!selectedFile || !selectedFile.endsWith('.kanban')) {
-        // If no kanban file is selected, keep current file or show placeholder
-        // Don't clear currentFile if we already have one loaded
-        if (!currentFile) {
-          const { loadKanbanData } = useKanbanStore.getState();
-          loadKanbanData();
-        }
-        return;
-      }
-      
-      setIsLoading(true);
+    let disposed = false;
+    const load = async () => {
       try {
-        const kanbanData = await fileService.loadKanbanFile(selectedFile);
-        setKanbanData(kanbanData);
-        setCurrentFile(selectedFile);
-      } catch (error) {
-        console.error('Error loading kanban file:', error);
-        
-        // Verificar se o erro é de arquivo não encontrado
-        const errorMessage = String(error);
-        if (errorMessage.includes('não pode encontrar o arquivo') || 
-            errorMessage.includes('No such file') || 
-            errorMessage.includes('not found') ||
-            errorMessage.includes('os error 2')) {
-          // Arquivo foi deletado - limpar seleção para voltar ao placeholder
-          const { setSelectedFile } = useAppStore.getState();
-          setSelectedFile(null);
-          setCurrentFile(null);
-        } else {
-          // Outro tipo de erro - criar estrutura padrão
-          const defaultData = { columns: [
-            { id: 'todo', title: 'To Do', cards: [], color: '#ef4444' },
-            { id: 'in-progress', title: 'In Progress', cards: [], color: '#f59e0b' },
-            { id: 'done', title: 'Done', cards: [], color: '#10b981' }
-          ]};
-          setKanbanData(defaultData);
-          setCurrentFile(selectedFile);
-          
-          // Save the default structure to the file
-          try {
-            await fileService.createKanbanFile(selectedFile, defaultData);
-          } catch (saveError) {
-            console.error('Error creating default kanban file:', saveError);
-          }
-        }
-      } finally {
-        setIsLoading(false);
+        const loaded = await fileService.loadKanbanFile(path);
+        if (disposed) return;
+        useKanbanStore.getState().setKanbanData(loaded);
+        setStatus('ready');
+      } catch (cause) {
+        if (disposed) return;
+        setError(String(cause));
+        setStatus('error');
       }
     };
+    void load();
+    return () => { disposed = true; };
+  }, [path, fileService]);
 
-    loadFile();
-  }, [selectedFile, setKanbanData, fileService]);
+  if (status === 'loading') return <div role="status" className="kanban-loading">Carregando arquivo...</div>;
+  if (status === 'error') return <div role="alert" className="kanban-load-error">
+    Não foi possível abrir {path}. O arquivo não foi alterado. {error}
+  </div>;
+  return <LoadedKanbanBoard currentFile={path} />;
+};
+
+const LoadedKanbanBoard: React.FC<{ currentFile: string }> = ({ currentFile }) => {
+  const { data, addCard, moveCard, deleteCard, updateCard } = useKanbanStore();
+  const { showConfirm } = usePopup();
+  const [showColumns, setShowColumns] = useState(false);
+  const { contextMenu, showContextMenu, hideContextMenu } = useContextMenu();
+  const fileService = FileService.getInstance();
+  const lastSaved = useRef(JSON.stringify(data));
+  const save = useCallback(async () => {
+    const snapshot = JSON.stringify(data);
+    if (snapshot === lastSaved.current) return;
+    await fileService.createKanbanFile(currentFile, data);
+    lastSaved.current = snapshot;
+  }, [currentFile, data, fileService]);
+  const { isSaving, forceSave } = useAutoSave(data, { onSave: save, saveOnUnmount: true });
 
   const handleAddCard = useCallback((columnId: string, title: string, description?: string, priority: 'low' | 'medium' | 'high' = 'medium') => {
     addCard(columnId, {
@@ -179,21 +160,6 @@ const KanbanBoard: React.FC = () => {
     ]);
   };
 
-  // Verificar se deve mostrar placeholder
-  const shouldShowPlaceholder = !currentFile;
-
-  if (shouldShowPlaceholder) {
-    return (
-      <ViewPlaceholder
-        type="kanban"
-        title="Quadro Kanban"
-        description="Organize suas tarefas e projetos usando o método Kanban com colunas personalizáveis."
-        currentFile={null}
-        expectedFileType=".kanban"
-      />
-    );
-  }
-
   return (
     <DndContext 
       collisionDetection={closestCorners}
@@ -216,10 +182,14 @@ const KanbanBoard: React.FC = () => {
           </div>
           
           <div className="kanban-actions">
+            <button type="button" onClick={() => setShowColumns(value => !value)} aria-expanded={showColumns}>
+              Personalizar colunas
+            </button>
             <button
               className="options-button"
               onClick={handleOptionsClick}
               title="Opções"
+              aria-label="Opções do quadro"
             >
               <MoreVertical size={16} />
             </button>
@@ -228,14 +198,11 @@ const KanbanBoard: React.FC = () => {
         
         {/* Hidden KanbanDataManager for programmatic access */}
         <div style={{ display: 'none' }}>
-          <KanbanDataManager />
+          <KanbanDataManager onSave={forceSave} />
         </div>
         
-        {isLoading ? (
-          <div className="kanban-loading">
-            <div>⏳ Carregando arquivo...</div>
-          </div>
-        ) : (
+        {showColumns && <KanbanColumnSettings />}
+        {
           <div className="kanban-columns">
             {data.columns.map((column) => (
               <KanbanColumn
@@ -247,7 +214,7 @@ const KanbanBoard: React.FC = () => {
               />
             ))}
           </div>
-        )}
+        }
       </div>
 
       {contextMenu.visible && (

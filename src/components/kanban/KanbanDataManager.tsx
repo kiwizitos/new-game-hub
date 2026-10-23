@@ -3,8 +3,13 @@ import { Download, Upload, Save, FileText } from 'lucide-react';
 import { useKanbanStore } from '../../stores/kanbanStore';
 import { usePopup } from '../../contexts/PopupContext';
 
-const KanbanDataManager: React.FC = () => {
-  const { exportKanbanData, importKanbanData, saveKanbanData } = useKanbanStore();
+interface KanbanDataManagerProps {
+  /** Resolves true only after the board was persisted; false means failed or disabled. */
+  onSave: () => Promise<boolean>;
+}
+
+const KanbanDataManager: React.FC<KanbanDataManagerProps> = ({ onSave }) => {
+  const { exportKanbanData, importKanbanData } = useKanbanStore();
   const { showAlert } = usePopup();
   const [importText, setImportText] = useState('');
   const [showImport, setShowImport] = useState(false);
@@ -64,8 +69,7 @@ const KanbanDataManager: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      await saveKanbanData();
-      showAlert('Sucesso', 'Dados salvos com sucesso!', 'success');
+      if (await onSave()) showAlert('Sucesso', 'Dados salvos com sucesso!', 'success');
     } catch (error) {
       showAlert('Erro', 'Erro ao salvar dados', 'error');
     }

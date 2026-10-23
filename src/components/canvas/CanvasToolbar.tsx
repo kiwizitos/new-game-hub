@@ -4,9 +4,12 @@ import './CanvasToolbar.css';
 
 interface CanvasToolbarProps {
   onAddNode: () => void;
+  onOpenTemplates: () => void;
+  onSave: () => void;
+  isSaving: boolean;
 }
 
-const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode }) => {
+const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode, onOpenTemplates, onSave, isSaving }) => {
   const { fitView, zoomIn, zoomOut } = useReactFlow();
 
   const handleFitView = useCallback(() => {
@@ -34,6 +37,10 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onAddNode }) => {
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
           Add Node
+        </button>
+        <button className="toolbar-btn" onClick={onOpenTemplates}>Modelos de cards</button>
+        <button className="toolbar-btn" onClick={onSave} disabled={isSaving}>
+          {isSaving ? 'Salvando...' : 'Salvar canvas'}
         </button>
       </div>
       
