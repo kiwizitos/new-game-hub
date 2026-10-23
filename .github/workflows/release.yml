@@ -8,19 +8,16 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag existente para compilar (ex.: v0.1.0 ou 0.1.0)'
-        required: true
+        description: 'Tag existente ou nova (opcional; padrão: v + versão do projeto)'
+        required: false
         type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: desktop-release-${{ inputs.tag || github.ref_name }}
+  group: desktop-release
   cancel-in-progress: false
-
-env:
-  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   prepare:
@@ -29,48 +26,28 @@ jobs:
       contents: write
     outputs:
       release_id: ${{ steps.release.outputs.release_id }}
+      tag: ${{ steps.release.outputs.tag }}
+      commit: ${{ steps.release.outputs.commit }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          ref: refs/tags/${{ env.RELEASE_TAG }}
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Validate release version
-        shell: bash
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const tauri = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
-          const cargo = fs.readFileSync('src-tauri/Cargo.toml', 'utf8')
-            .match(/^version\s*=\s*"([^"]+)"/m)?.[1];
-          const tag = process.env.RELEASE_TAG;
-          const version = tag?.replace(/^v/, '');
-          if (pkg.version !== tauri.version || cargo !== tauri.version ||
-              version !== tauri.version) {
-            throw new Error(
-              `A tag (com ou sem prefixo v) e as versões devem coincidir. ` +
-              `Tag: ${tag}; package.json: ${pkg.version}; Cargo.toml: ${cargo}; tauri.conf.json: ${tauri.version}.`
-            );
-          }
-          NODE
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
 
-      - name: Prepare draft prerelease
+      - name: Check release preparation
+        run: node --test .github/scripts/prepare-release.test.mjs
+
+      - name: Validate version and prepare tag and draft
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          if gh release view "$RELEASE_TAG" --json isDraft > /tmp/release.json; then
-            node -e "if (!require('/tmp/release.json').isDraft) throw new Error('Esta release já foi publicada; use uma nova versão.');"
-          else
-            gh release create "$RELEASE_TAG" --verify-tag --draft --prerelease \
-              --title "Game Dev Hub $RELEASE_TAG" \
-              --notes "Versão de teste. Baixe o instalador correspondente ao seu sistema nos assets abaixo. Os aplicativos não possuem assinatura digital; Windows e macOS podem exibir avisos ou bloquear a execução."
-          fi
-          release_id="$(gh api "repos/$GH_REPO/releases/tags/$RELEASE_TAG" --jq '.id')"
-          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: node .github/scripts/prepare-release.mjs
 
   build:
     needs: prepare
@@ -90,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          ref: refs/tags/${{ env.RELEASE_TAG }}
+          ref: ${{ needs.prepare.outputs.commit }}
           persist-credentials: false
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -137,4 +114,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
+          RELEASE_ID: ${{ needs.prepare.outputs.release_id }}
+        run: |
+          gh api --method PATCH "repos/$GH_REPO/releases/$RELEASE_ID" \
+            -F draft=false -F prerelease=true -f make_latest=false
