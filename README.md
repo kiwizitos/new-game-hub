@@ -204,31 +204,60 @@ compila o frontend e o backend e publica uma **pré-release** com instaladores:
 
 Para publicar uma versão de teste:
 
-1. Mantenha a mesma versão em `package.json`, `src-tauri/Cargo.toml` e
-   `src-tauri/tauri.conf.json`, atualizando também os respectivos lockfiles
-   com npm e Cargo quando alterar a versão.
-2. Envie o commit e uma tag correspondente, como `v0.1.0` ou `0.1.0`, para o GitHub
-   (o prefixo `v` é opcional):
+1. Prepare a versão no código. `package.json`, `src-tauri/tauri.conf.json` e
+   `src-tauri/Cargo.toml` devem ter o mesmo número no formato `X.Y.Z`; atualize
+   também `package-lock.json` e `src-tauri/Cargo.lock` quando alterar a versão.
+   Por exemplo, `npm version 0.1.1 --no-git-tag-version` atualiza os arquivos
+   do npm sem criar commit nem tag. Edite as versões do Tauri e do Cargo e
+   atualize o lockfile Rust com:
 
    ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
+   cargo update --workspace --manifest-path src-tauri/Cargo.toml
    ```
 
-3. Acompanhe **Actions → Desktop release**. A release permanece como rascunho
-   até os três builds concluírem com sucesso; só então fica disponível em
-   [Releases](https://github.com/kiwizitos/new-game-hub/releases).
+   Confira e envie os cinco arquivos de versão em um commit. A Action valida
+   que as versões dos dois lockfiles também correspondem.
+2. Com o workflow atualizado na branch padrão, abra
+   **Actions → Desktop release → Run workflow**. Em **Use workflow from**,
+   selecione a branch que contém o código a publicar. Deixe **tag** vazio para
+   usar `v` + a versão dessa branch, ou informe `0.1.1` ou `v0.1.1`.
+3. Execute o workflow. Se a tag não existir, a Action a cria no commit
+   selecionado. Se já existir, usa o commit da tag, e não o código mais recente
+   da branch. As versões são validadas nesse mesmo commit.
+4. Acompanhe os jobs `prepare`, `build` e `publish`. A pré-release só fica
+   pública quando os três builds terminarem com sucesso.
 
-Também é possível executar por **Actions → Desktop release → Run workflow**,
-informando o nome exato de uma tag já existente, com ou sem `v`, que contenha o workflow.
-Essa opção fica disponível
-quando o workflow estiver na branch padrão. Se algum build falhar, corrija o problema
-em uma nova versão ou reexecute a execução para uma falha transitória: o rascunho é
-reutilizado. Uma versão já publicada não é sobrescrita; use uma nova tag/versão.
+Como alternativa, com o commit de versão já enviado, crie e envie uma tag:
+
+```bash
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+Esse push também inicia o workflow; não é preciso criar uma release manualmente.
+A automação não escolhe nem incrementa a versão. Tags com e sem `v` são aceitas,
+mas são nomes distintos; prefira `vX.Y.Z` para novas versões. Use versões
+`X.Y.Z` sem zeros iniciais. A classificação como pré-release é configurada no
+GitHub, sem exigir sufixo `-beta`.
+
+| Job | Responsabilidade |
+| --- | --- |
+| `prepare` | Valida tag, versões e lockfiles; resolve o commit; cria a tag quando necessário; cria ou reutiliza um rascunho e retorna seu ID. |
+| `build` | Compila Windows, macOS e Linux em paralelo no mesmo commit e anexa os instaladores ao rascunho. |
+| `publish` | Publica a pré-release somente se todos os builds tiverem sucesso, sem marcá-la como a release estável mais recente. |
+
+As execuções são serializadas para evitar alterações simultâneas na mesma
+release. Os builds usam `npm ci` e Cargo `--locked`; o cache do npm reduz os
+downloads em execuções futuras. Se um build falhar por um problema transitório,
+use **Re-run failed jobs** na execução original; se reiniciar o workflow para a
+mesma tag, o rascunho será reutilizado. Uma release publicada nunca é
+sobrescrita: use uma nova versão.
 
 O workflow usa o `GITHUB_TOKEN` automático com permissão de escrita em conteúdo;
-não exige um token pessoal. As políticas do repositório/organização devem permitir
-a execução do GitHub Actions e a criação de releases.
+não exige um token pessoal. As políticas do repositório/organização e eventuais
+proteções de tags precisam permitir que o GitHub Actions crie releases e tags.
+Se uma proteção bloquear a criação automática, crie a tag pelo processo
+autorizado e informe-a ao workflow.
 
 Para testar, o usuário baixa o instalador do seu sistema nos **Assets** da
 pré-release, sem instalar Node.js ou Rust. No Linux, podem ser necessárias
