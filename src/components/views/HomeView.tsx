@@ -65,13 +65,13 @@ const HomeView: React.FC = () => {
       // Criar o arquivo baseado no tipo
       switch (template.type) {
         case 'markdown':
-          await fileService.saveMarkdownFile(filePath, template.content as string);
+          await fileService.saveMarkdownFile(filePath, template.content);
           break;
         case 'kanban':
-          await fileService.createKanbanFile(filePath, template.content as any);
+          await fileService.createKanbanFile(filePath, template.content);
           break;
         case 'canvas':
-          await fileService.createCanvasFile(filePath, template.content as any);
+          await fileService.createCanvasFile(filePath, template.content);
           break;
       }
 

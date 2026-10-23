@@ -41,11 +41,53 @@ O **Game Dev Hub** é uma suíte de ferramentas de produtividade especialmente p
 
 ### Recursos Gerais
 - **Sistema de Arquivos**: Explorador de arquivos integrado
+- **Workspace**: Seleção de pasta pelo diálogo nativo do sistema, sem digitar caminhos
 - **Auto-save**: Salvamento automático em todos os módulos
 - **File Watcher**: Monitoramento de mudanças em tempo real
 - **Templates**: Sistema de templates para novos projetos
 - **Temas**: Suporte a modo claro e escuro
 - **Multi-plataforma**: Roda no Windows, macOS e Linux
+
+### Templates para desenvolvimento de games
+
+Os modelos de games aparecem primeiro em cada tipo de arquivo, tanto na Home
+quanto no Explorer. Os modelos genéricos continuam disponíveis. É possível
+buscar pelo nome, descrição ou tags, como `gdd`, `playtest`, `qa` e `gameplay`.
+
+| Tipo | Modelo | Objetivo |
+|------|--------|----------|
+| Markdown | Game Design Document | Definir fantasia do jogador, pilares, core loop, escopo e critérios de validação |
+| Markdown | Gameplay Mechanic Specification | Especificar regras, estados, feedback, parâmetros e casos de borda |
+| Markdown | Playtest Report | Registrar build, observações, bugs, evidências e ações de reteste |
+| Kanban | Game Production Board | Organizar um marco jogável entre Backlog, Ready, In Development, Playtest e Done |
+| Kanban | Game Bug Triage | Acompanhar relatos entre Reported, Triaged, Fixing, Verification e Resolved |
+| Canvas | Core Gameplay Loop | Conectar objetivo, ação, desafio, recompensa, progressão e uma pergunta de playtest |
+
+Os documentos contêm perguntas orientadoras, não decisões de design prontas.
+Os quadros incluem tarefas iniciais ou um guia de relato, que podem ser editados
+ou removidos. Cada criação recebe dados independentes; editar um arquivo não
+altera o modelo nem outros arquivos. Não há mudança nos formatos existentes.
+
+Para abrir ou trocar de workspace, use **Selecionar Pasta / Trocar Pasta** no
+Explorer. O diálogo começa na pasta atual quando houver uma. Cancelar ou
+selecionar uma pasta inacessível não substitui o workspace atual; erros são
+exibidos em um alerta. A última pasta selecionada continua sendo restaurada
+ao abrir o aplicativo.
+
+### Evolução planejada
+
+- [x] Seletor nativo de workspace e catálogo inicial de templates de games.
+- [ ] Próximo PR: criar, renomear, ordenar e remover colunas do board, definindo
+  explicitamente o destino dos cards antes de remover uma coluna com conteúdo.
+- [ ] PR seguinte: modelos reutilizáveis de cards no canvas e visualização do
+  conteúdo completo em modal por duplo clique, com alternativa por teclado.
+- [ ] Futuro, fora do escopo atual: preferências de cores, fontes e aparência
+  global, com contraste acessível e opção de restaurar os padrões.
+
+Antes de ampliar a personalização, priorizar validação e versionamento dos
+arquivos persistidos, migrações compatíveis e testes de salvar/reabrir. Separar
+preferências do aplicativo das configurações de cada board/canvas evita que
+alterações globais modifiquem o conteúdo de projetos existentes.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -74,7 +116,7 @@ O **Game Dev Hub** é uma suíte de ferramentas de produtividade especialmente p
 
 ### Pré-requisitos
 
-- **Node.js** (versão 18 ou superior)
+- **Node.js** 22.12+ na linha 22, 24.x ou 26+ (compatível com o Vitest atual; CI usa a linha 22)
 - **npm** ou **yarn**
 - **Rust** (1.70 ou superior)
 - **Tauri CLI**
@@ -126,6 +168,9 @@ npm run dev
 # Build do frontend
 npm run build
 
+# Testes de regressão do frontend
+npm test
+
 # Preview do build
 npm run preview
 
@@ -145,14 +190,29 @@ npm ci
 # Verificação TypeScript e build do frontend
 npm run build
 
+# Templates, seleção de pasta e estado do modal
+npm test
+
+# Testes da preparação de releases
+node --test .github/scripts/prepare-release.test.mjs
+
 # Auditoria das dependências de produção
 npm audit --omit=dev
 ```
 
-O projeto ainda não possui uma suíte de testes automatizados nem um script de lint.
+Os testes de frontend usam Vitest e Testing Library. A seleção de pasta é
+testada com mocks das APIs nativas; isso não substitui a verificação do diálogo
+no desktop. O workflow **Frontend checks** executa testes, TypeScript/build e os
+testes da preparação de releases em cada PR. Ainda não há script de lint.
+
 Para verificar os fluxos desktop, execute `npm run tauri:dev` e confira:
 
-- Selecione uma pasta no Explorer e crie um documento, um quadro Kanban e um Canvas.
+- Abra o seletor de pasta no Explorer, selecione uma pasta e confira a árvore de arquivos.
+- Abra o seletor novamente e cancele: o workspace deve permanecer inalterado.
+- Troque de pasta, reinicie o app e confira a restauração; em caso de falha de acesso, confira o alerta.
+- Crie um GDD, um Game Production Board e um Core Gameplay Loop pela Home e pelo Explorer.
+- Busque templates por tags, alterne os tipos e reabra o modal: não deve haver seleção de um tipo anterior.
+- Edite e reabra os arquivos criados; crie outro arquivo com o mesmo modelo e confira que ele não herdou as edições.
 - Alterne entre os módulos: cada um deve restaurar seu próprio último arquivo; módulos sem arquivo devem mostrar o estado vazio.
 - Volte à Home: a seção de continuidade deve mostrar os últimos arquivos abertos em cada módulo, sem dados de exemplo.
 - Renomeie ou exclua um arquivo no Explorer e confira as sessões; excluir outro arquivo não deve fechar o documento ativo.

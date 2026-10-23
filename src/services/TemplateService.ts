@@ -1,15 +1,20 @@
 import { KanbanData } from '../types/kanban';
 import { CanvasData } from './FileService';
+import { createGameTemplates } from './templates/gameTemplates';
 
-export interface Template {
+interface TemplateMetadata {
   id: string;
   name: string;
   description: string;
-  type: 'markdown' | 'kanban' | 'canvas';
-  content: string | KanbanData | CanvasData;
   category: string;
   tags: string[];
 }
+
+export type Template = TemplateMetadata & (
+  | { type: 'markdown'; content: string }
+  | { type: 'kanban'; content: KanbanData }
+  | { type: 'canvas'; content: CanvasData }
+);
 
 class TemplateService {
   private static instance: TemplateService;
@@ -24,6 +29,7 @@ class TemplateService {
   // Templates predefinidos
   getDefaultTemplates(): Template[] {
     return [
+      ...createGameTemplates(),
       // Templates Markdown
       {
         id: 'md-blank',

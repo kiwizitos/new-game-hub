@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Folder, FolderOpen, File, FileText, Layout, GitBranch } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
 import { useContextMenu } from '../../hooks/useContextMenu';
 import { useFileWatcher } from '../../hooks/useFileWatcher';
 import { usePopup } from '../../contexts/PopupContext';
@@ -32,6 +33,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const [tree, setTree] = useState<FileNode[]>([]);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
+  const [isSelectingFolder, setIsSelectingFolder] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalType, setCreateModalType] = useState<'markdown' | 'kanban' | 'canvas'>('markdown');
   const [createModalPath, setCreateModalPath] = useState<string>('');
@@ -50,24 +52,29 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   }, [setCurrentFolder]);
 
   const selectRootFolder = async () => {
+    if (isSelectingFolder) return;
+    setIsSelectingFolder(true);
     try {
-      showInput(
-        'Selecionar Pasta',
-        'Digite o caminho da pasta raiz:',
-        (path: string) => {
-          setRootPath(path);
-          setCurrentFolder(path); // Atualizar pasta atual no store
-          localStorage.setItem('fileExplorer-rootPath', path);
-          setExpandedFolders(new Set([path]));
-          loadTree(path);
-        },
-        { 
-          placeholder: 'Ex: C:\\Users\\YourName\\Documents',
-          defaultValue: rootPath || ''
-        }
-      );
+      const path = await open({
+        directory: true,
+        multiple: false,
+        title: 'Selecionar pasta do workspace',
+        ...(rootPath ? { defaultPath: rootPath } : {}),
+      });
+      if (path === null) return;
+
+      // Validate access before replacing the current workspace.
+      const result = await invoke<FileNode[]>('read_dir_tree', { path });
+      setCurrentFolder(path);
+      localStorage.setItem('fileExplorer-rootPath', path);
+      setRootPath(path);
+      setExpandedFolders(new Set([path]));
+      setTree(result);
     } catch (error) {
       console.error('Error selecting folder:', error);
+      showAlert('Erro ao abrir pasta', `Não foi possível abrir a pasta do workspace: ${error}`, 'error');
+    } finally {
+      setIsSelectingFolder(false);
     }
   };
 
@@ -78,7 +85,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       setTree(result);
     } catch (error) {
       console.error('Error loading file tree:', error);
-      setTree([]);
+      showAlert('Erro ao carregar pasta', `Não foi possível carregar o conteúdo da pasta: ${error}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -215,13 +222,13 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       // Criar o arquivo baseado no tipo
       switch (template.type) {
         case 'markdown':
-          await fileService.saveMarkdownFile(filePath, template.content as string);
+          await fileService.saveMarkdownFile(filePath, template.content);
           break;
         case 'kanban':
-          await fileService.createKanbanFile(filePath, template.content as any);
+          await fileService.createKanbanFile(filePath, template.content);
           break;
         case 'canvas':
-          await fileService.createCanvasFile(filePath, template.content as any);
+          await fileService.createCanvasFile(filePath, template.content);
           break;
       }
 
@@ -539,7 +546,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     <div className="file-explorer">
       <div className="file-explorer-header">
         <h3>Explorer</h3>
-        <button className="select-folder-btn" onClick={selectRootFolder}>
+        <button className="select-folder-btn" onClick={selectRootFolder} disabled={isSelectingFolder || isLoading}>
           <Folder size={16} />
           {rootPath ? 'Trocar Pasta' : 'Selecionar Pasta'}
         </button>

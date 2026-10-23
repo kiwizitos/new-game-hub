@@ -13,7 +13,7 @@ export const useAutoSave = (
 ) => {
   const { delay = 2000, onSave, enabled = true } = options;
   const { showAlert } = usePopup();
-  const timeoutRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<string>('');
   const isSavingRef = useRef(false);
 

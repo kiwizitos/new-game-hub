@@ -139,6 +139,9 @@
 }
 
 .template-card {
+  font: inherit;
+  text-align: left;
+  color: var(--text-primary);
   padding: 20px;
   background: var(--bg-secondary);
   border: 2px solid var(--border);
@@ -151,7 +154,8 @@
   gap: 12px;
 }
 
-.template-card:hover {
+.template-card:hover,
+.template-card:focus-visible {
   border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
