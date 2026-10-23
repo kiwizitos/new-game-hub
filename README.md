@@ -207,7 +207,8 @@ Para publicar uma versão de teste:
 1. Mantenha a mesma versão em `package.json`, `src-tauri/Cargo.toml` e
    `src-tauri/tauri.conf.json`, atualizando também os respectivos lockfiles
    com npm e Cargo quando alterar a versão.
-2. Envie o commit e uma tag correspondente, como `v0.1.0`, para o GitHub:
+2. Envie o commit e uma tag correspondente, como `v0.1.0` ou `0.1.0`, para o GitHub
+   (o prefixo `v` é opcional):
 
    ```bash
    git tag v0.1.0
@@ -219,7 +220,8 @@ Para publicar uma versão de teste:
    [Releases](https://github.com/kiwizitos/new-game-hub/releases).
 
 Também é possível executar por **Actions → Desktop release → Run workflow**,
-informando uma tag já existente que contenha o workflow. Essa opção fica disponível
+informando o nome exato de uma tag já existente, com ou sem `v`, que contenha o workflow.
+Essa opção fica disponível
 quando o workflow estiver na branch padrão. Se algum build falhar, corrija o problema
 em uma nova versão ou reexecute a execução para uma falha transitória: o rascunho é
 reutilizado. Uma versão já publicada não é sobrescrita; use uma nova tag/versão.

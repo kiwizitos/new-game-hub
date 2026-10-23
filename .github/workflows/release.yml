@@ -4,10 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+      - '[0-9]*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag existente para compilar (ex.: v0.1.0)'
+        description: 'Tag existente para compilar (ex.: v0.1.0 ou 0.1.0)'
         required: true
         type: string
 
@@ -43,9 +44,14 @@ jobs:
           const tauri = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
           const cargo = fs.readFileSync('src-tauri/Cargo.toml', 'utf8')
             .match(/^version\s*=\s*"([^"]+)"/m)?.[1];
+          const tag = process.env.RELEASE_TAG;
+          const version = tag?.replace(/^v/, '');
           if (pkg.version !== tauri.version || cargo !== tauri.version ||
-              process.env.RELEASE_TAG !== `v${tauri.version}`) {
-            throw new Error('A tag e as versões de package.json, Cargo.toml e tauri.conf.json devem coincidir.');
+              version !== tauri.version) {
+            throw new Error(
+              `A tag (com ou sem prefixo v) e as versões devem coincidir. ` +
+              `Tag: ${tag}; package.json: ${pkg.version}; Cargo.toml: ${cargo}; tauri.conf.json: ${tauri.version}.`
+            );
           }
           NODE
 
