@@ -193,6 +193,49 @@ As configurações de build podem ser ajustadas em:
 - `vite.config.ts` - Configurações do Vite
 - `tsconfig.json` - Configurações do TypeScript
 
+### Releases automáticas no GitHub
+
+O workflow `.github/workflows/release.yml` instala as ferramentas e dependências,
+compila o frontend e o backend e publica uma **pré-release** com instaladores:
+
+- **Windows x64**: `.exe` (NSIS) e `.msi`.
+- **macOS Intel e Apple Silicon**: `.dmg` universal.
+- **Linux x64**: `.deb` e `.AppImage`.
+
+Para publicar uma versão de teste:
+
+1. Mantenha a mesma versão em `package.json`, `src-tauri/Cargo.toml` e
+   `src-tauri/tauri.conf.json`, atualizando também os respectivos lockfiles
+   com npm e Cargo quando alterar a versão.
+2. Envie o commit e uma tag correspondente, como `v0.1.0`, para o GitHub:
+
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+
+3. Acompanhe **Actions → Desktop release**. A release permanece como rascunho
+   até os três builds concluírem com sucesso; só então fica disponível em
+   [Releases](https://github.com/kiwizitos/new-game-hub/releases).
+
+Também é possível executar por **Actions → Desktop release → Run workflow**,
+informando uma tag já existente que contenha o workflow. Essa opção fica disponível
+quando o workflow estiver na branch padrão. Se algum build falhar, corrija o problema
+em uma nova versão ou reexecute a execução para uma falha transitória: o rascunho é
+reutilizado. Uma versão já publicada não é sobrescrita; use uma nova tag/versão.
+
+O workflow usa o `GITHUB_TOKEN` automático com permissão de escrita em conteúdo;
+não exige um token pessoal. As políticas do repositório/organização devem permitir
+a execução do GitHub Actions e a criação de releases.
+
+Para testar, o usuário baixa o instalador do seu sistema nos **Assets** da
+pré-release, sem instalar Node.js ou Rust. No Linux, podem ser necessárias
+bibliotecas do sistema, como WebKitGTK; AppImages também podem exigir FUSE.
+Esses builds não têm assinatura digital nem notarização: Windows e macOS podem
+exibir alertas ou bloquear a execução. Assinatura/notarização exigem certificados
+e credenciais próprios, não incluídos neste workflow. Não há atualização automática
+do aplicativo; novas versões são baixadas pela página de releases.
+
 ## 📁 Estrutura do Projeto
 
 ```
