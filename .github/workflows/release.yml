@@ -56,11 +56,11 @@ jobs:
       matrix:
         include:
           - platform: windows-latest
-            args: --locked --bundles nsis,msi
+            args: --bundles nsis,msi -- --locked
           - platform: macos-latest
-            args: --locked --target universal-apple-darwin --bundles dmg
+            args: --target universal-apple-darwin --bundles dmg -- --locked
           - platform: ubuntu-22.04
-            args: --locked --bundles deb,appimage
+            args: --bundles deb,appimage -- --locked
     runs-on: ${{ matrix.platform }}
     permissions:
       contents: write
