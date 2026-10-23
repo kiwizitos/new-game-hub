@@ -1,82 +1,72 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { usePopup } from '../contexts/PopupContext';
 
 interface UseAutoSaveOptions {
-  delay?: number; // Delay em ms antes de salvar
+  delay?: number;
   onSave: () => Promise<void>;
   enabled?: boolean;
+  saveOnUnmount?: boolean;
 }
 
-export const useAutoSave = (
-  data: any,
-  options: UseAutoSaveOptions
-) => {
-  const { delay = 2000, onSave, enabled = true } = options;
+export const useAutoSave = (data: unknown, options: UseAutoSaveOptions) => {
+  const { delay = 2000, onSave, enabled = true, saveOnUnmount = false } = options;
   const { showAlert } = usePopup();
-  const timeoutRef = useRef<number | null>(null);
-  const lastSavedRef = useRef<string>('');
-  const isSavingRef = useRef(false);
+  const serialized = JSON.stringify(data);
+  const latest = useRef({ serialized, onSave, enabled, saveOnUnmount, showAlert });
+  latest.current = { serialized, onSave, enabled, saveOnUnmount, showAlert };
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRef = useRef<string | undefined>();
+  const pendingRef = useRef<Promise<boolean> | null>(null);
+  const mountedRef = useRef(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const saveData = useCallback(async () => {
-    if (isSavingRef.current || !enabled) return;
-
-    try {
-      isSavingRef.current = true;
-      await onSave();
-      lastSavedRef.current = JSON.stringify(data);
-      
-      // Optional: Show a subtle save indicator
-      console.log('Auto-saved successfully');
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-      showAlert('Auto-save Error', `Failed to save: ${error}`, 'error');
-    } finally {
-      isSavingRef.current = false;
-    }
-  }, [data, onSave, enabled, showAlert]);
+  const saveData = useCallback((): Promise<boolean> => {
+    if (pendingRef.current) return pendingRef.current;
+    const run = async () => {
+      // Coalesce edits during an in-flight write; older data must never finish last.
+      while (latest.current.enabled && latest.current.serialized !== lastSavedRef.current) {
+        const snapshot = latest.current;
+        try {
+          await snapshot.onSave();
+          lastSavedRef.current = snapshot.serialized;
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+          snapshot.showAlert('Auto-save Error', `Failed to save: ${error}`, 'error');
+          return false;
+        }
+      }
+      return true;
+    };
+    if (!latest.current.enabled) return Promise.resolve(false);
+    if (mountedRef.current) setIsSaving(true);
+    pendingRef.current = run().finally(() => {
+      pendingRef.current = null;
+      if (mountedRef.current) setIsSaving(false);
+    });
+    return pendingRef.current;
+  }, []);
 
   useEffect(() => {
-    if (!enabled) return;
-
-    const currentDataString = JSON.stringify(data);
-    
-    // Só salva se os dados mudaram
-    if (currentDataString !== lastSavedRef.current && data) {
-      // Cancela o timeout anterior se existir
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      // Agenda novo save
-      timeoutRef.current = setTimeout(() => {
-        saveData();
-      }, delay);
-    }
-
-    // Cleanup
+    if (!enabled || serialized === lastSavedRef.current) return;
+    timeoutRef.current = setTimeout(() => { void saveData(); }, delay);
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
     };
-  }, [data, delay, saveData, enabled]);
+  }, [serialized, delay, enabled, saveData]);
 
-  // Força um save imediato
-  const forceSave = useCallback(async () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    await saveData();
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (latest.current.saveOnUnmount) void saveData();
+    };
   }, [saveData]);
 
-  // Verifica se há mudanças não salvas
-  const hasUnsavedChanges = useCallback(() => {
-    return JSON.stringify(data) !== lastSavedRef.current;
-  }, [data]);
+  const forceSave = useCallback(async () => {
+    if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
+    return saveData();
+  }, [saveData]);
 
-  return {
-    forceSave,
-    hasUnsavedChanges,
-    isSaving: isSavingRef.current
-  };
+  const hasUnsavedChanges = useCallback(() => serialized !== lastSavedRef.current, [serialized]);
+  return { forceSave, hasUnsavedChanges, isSaving };
 };

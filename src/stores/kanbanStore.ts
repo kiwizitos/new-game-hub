@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { KanbanData, KanbanCard, KanbanColumn } from '../types/kanban';
+import { parseKanbanData } from '../services/fileValidation';
 
 const defaultColumns: KanbanColumn[] = [
   {
@@ -22,11 +23,24 @@ const defaultColumns: KanbanColumn[] = [
   }
 ];
 
+function validateColumnTitle(data: KanbanData, title: string, excludeId?: string): string {
+  const name = title.trim();
+  if (!name) throw new Error('Informe um nome para a coluna.');
+  if (data.columns.some(column => column.id !== excludeId && column.title.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+    throw new Error('Já existe uma coluna com esse nome.');
+  }
+  return name;
+}
+
 interface KanbanStore {
   data: KanbanData;
   
   // Actions
   setKanbanData: (data: KanbanData) => void;
+  addColumn: (title: string) => void;
+  renameColumn: (columnId: string, title: string) => void;
+  reorderColumn: (columnId: string, targetIndex: number) => void;
+  removeColumn: (columnId: string, destinationId?: string) => void;
   addCard: (columnId: string, card: Omit<KanbanCard, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateCard: (cardId: string, updates: Partial<KanbanCard>) => void;
   deleteCard: (cardId: string) => void;
@@ -41,6 +55,52 @@ export const useKanbanStore = create<KanbanStore>((set, get) => ({
   data: { columns: defaultColumns },
 
   setKanbanData: (data) => set({ data }),
+
+  addColumn: (title) => {
+    const { data } = get();
+    const name = validateColumnTitle(data, title);
+    set({ data: { ...data, columns: [...data.columns, {
+      id: `column-${crypto.randomUUID()}`, title: name, cards: []
+    }] } });
+  },
+
+  renameColumn: (columnId, title) => {
+    const { data } = get();
+    if (!data.columns.some(column => column.id === columnId)) {
+      throw new Error('Coluna não encontrada.');
+    }
+    const name = validateColumnTitle(data, title, columnId);
+    set({ data: { ...data, columns: data.columns.map(column =>
+      column.id === columnId ? { ...column, title: name } : column
+    ) } });
+  },
+
+  reorderColumn: (columnId, targetIndex) => {
+    const { data } = get();
+    const index = data.columns.findIndex(column => column.id === columnId);
+    if (index < 0 || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= data.columns.length) {
+      throw new Error('Posição de coluna inválida.');
+    }
+    const columns = [...data.columns];
+    columns.splice(targetIndex, 0, columns.splice(index, 1)[0]);
+    set({ data: { ...data, columns } });
+  },
+
+  removeColumn: (columnId, destinationId) => {
+    const { data } = get();
+    const source = data.columns.find(column => column.id === columnId);
+    if (!source) throw new Error('Coluna não encontrada.');
+    if (data.columns.length <= 1) throw new Error('A última coluna não pode ser removida.');
+    const destination = data.columns.find(column => column.id === destinationId && column.id !== columnId);
+    if ((source.cards.length > 0 || destinationId !== undefined) && !destination) {
+      throw new Error('Escolha outra coluna para receber os cards.');
+    }
+    set({ data: { ...data, columns: data.columns
+      .filter(column => column.id !== columnId)
+      .map(column => column.id === destination?.id
+        ? { ...column, cards: [...column.cards, ...source.cards] } : column)
+    } });
+  },
 
   addCard: (columnId, cardData) => {
     const { data } = get();
@@ -92,6 +152,8 @@ export const useKanbanStore = create<KanbanStore>((set, get) => ({
 
   moveCard: (cardId, targetColumnId) => {
     const { data } = get();
+    const source = data.columns.find(column => column.cards.some(card => card.id === cardId));
+    if (!source || source.id === targetColumnId || !data.columns.some(column => column.id === targetColumnId)) return;
     let cardToMove: KanbanCard | null = null;
     
     // Find and remove card from current column
@@ -126,22 +188,7 @@ export const useKanbanStore = create<KanbanStore>((set, get) => ({
       // Use localStorage for now (simpler and always works)
       const savedData = localStorage.getItem('kanban-data');
       if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        
-        // Convert date strings back to Date objects if they exist
-        const dataWithDates = {
-          ...parsedData,
-          columns: parsedData.columns.map((column: any) => ({
-            ...column,
-            cards: column.cards.map((card: any) => ({
-              ...card,
-              createdAt: card.createdAt ? new Date(card.createdAt) : new Date(),
-              updatedAt: card.updatedAt ? new Date(card.updatedAt) : new Date()
-            }))
-          }))
-        };
-        
-        set({ data: dataWithDates });
+        set({ data: parseKanbanData(JSON.parse(savedData)) });
         console.log('Kanban data loaded successfully');
       }
     } catch (error) {
@@ -175,26 +222,8 @@ export const useKanbanStore = create<KanbanStore>((set, get) => ({
 
   importKanbanData: async (jsonData: string) => {
     try {
-      const parsedData = JSON.parse(jsonData);
-      
-      // Validate data structure
-      if (!parsedData.columns || !Array.isArray(parsedData.columns)) {
-        throw new Error('Invalid data format: missing columns array');
-      }
-      
-      // Convert date strings back to Date objects if they exist
-      const dataWithDates = {
-        columns: parsedData.columns.map((column: any) => ({
-          ...column,
-          cards: column.cards.map((card: any) => ({
-            ...card,
-            createdAt: card.createdAt ? new Date(card.createdAt) : new Date(),
-            updatedAt: card.updatedAt ? new Date(card.updatedAt) : new Date()
-          }))
-        }))
-      };
-      
-      set({ data: dataWithDates });
+      const parsedData = parseKanbanData(JSON.parse(jsonData));
+      set({ data: parsedData });
       await get().saveKanbanData();
       
       console.log('Kanban data imported successfully');

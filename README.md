@@ -24,6 +24,8 @@ O **Game Dev Hub** é uma suíte de ferramentas de produtividade especialmente p
 
 ### Kanban Board
 - Colunas personalizáveis
+- Criação, renomeação e ordenação de colunas no próprio quadro
+- Remoção segura de colunas com escolha explícita do destino dos cards
 - Cards com título, descrição e prioridades
 - Sistema de drag-and-drop para reorganização
 - Tags coloridas para categorização
@@ -38,14 +40,92 @@ O **Game Dev Hub** é uma suíte de ferramentas de produtividade especialmente p
 - Minimap para navegação
 - Grid de alinhamento
 - Auto-save das posições e conteúdo
+- Cards compactos com conteúdo completo e edição em modal
+- Modelos reutilizáveis de cards salvos dentro de cada arquivo Canvas
 
 ### Recursos Gerais
 - **Sistema de Arquivos**: Explorador de arquivos integrado
+- **Workspace**: Seleção de pasta pelo diálogo nativo do sistema, sem digitar caminhos
 - **Auto-save**: Salvamento automático em todos os módulos
 - **File Watcher**: Monitoramento de mudanças em tempo real
 - **Templates**: Sistema de templates para novos projetos
 - **Temas**: Suporte a modo claro e escuro
 - **Multi-plataforma**: Roda no Windows, macOS e Linux
+
+### Templates para desenvolvimento de games
+
+Os modelos de games aparecem primeiro em cada tipo de arquivo, tanto na Home
+quanto no Explorer. Os modelos genéricos continuam disponíveis. É possível
+buscar pelo nome, descrição ou tags, como `gdd`, `playtest`, `qa` e `gameplay`.
+
+| Tipo | Modelo | Objetivo |
+|------|--------|----------|
+| Markdown | Game Design Document | Definir fantasia do jogador, pilares, core loop, escopo e critérios de validação |
+| Markdown | Gameplay Mechanic Specification | Especificar regras, estados, feedback, parâmetros e casos de borda |
+| Markdown | Playtest Report | Registrar build, observações, bugs, evidências e ações de reteste |
+| Kanban | Game Production Board | Organizar um marco jogável entre Backlog, Ready, In Development, Playtest e Done |
+| Kanban | Game Bug Triage | Acompanhar relatos entre Reported, Triaged, Fixing, Verification e Resolved |
+| Canvas | Core Gameplay Loop | Conectar objetivo, ação, desafio, recompensa, progressão e uma pergunta de playtest |
+
+Os documentos contêm perguntas orientadoras, não decisões de design prontas.
+Os quadros incluem tarefas iniciais ou um guia de relato, que podem ser editados
+ou removidos. Cada criação recebe dados independentes; editar um arquivo não
+altera o modelo nem outros arquivos. Os templates usam os formatos de documento,
+board e canvas já existentes.
+
+Para abrir ou trocar de workspace, use **Selecionar Pasta / Trocar Pasta** no
+Explorer. O diálogo começa na pasta atual quando houver uma. Cancelar ou
+selecionar uma pasta inacessível não substitui o workspace atual; erros são
+exibidos em um alerta. A última pasta selecionada continua sendo restaurada
+ao abrir o aplicativo.
+
+### Personalização das seções
+
+**Board:** abra **Personalizar colunas** para adicionar ou renomear colunas e use
+as setas para alterar sua ordem. A última coluna não pode ser removida. Antes de
+remover uma coluna com cards, escolha explicitamente outra coluna como destino:
+todos os cards são transferidos sem perder seus dados. Configurações, ordem e
+cards continuam sendo persistidos no arquivo `.kanban`.
+
+**Canvas:** dê dois cliques no conteúdo do card ou use o botão **Abrir card**
+(também acessível por teclado) para abrir o conteúdo completo em um modal.
+**Editar conteúdo** alterna para a edição Markdown; **Salvar card** aplica a
+edição. Cancelar ou pressionar Escape com alterações pendentes exige confirmar
+o descarte. O modal mantém o foco de teclado dentro dele e retorna ao controle
+anterior ao fechar. O preview suporta títulos, negrito, itálico e código inline;
+HTML fornecido no conteúdo é exibido como texto, não executado.
+
+Use **Salvar como modelo** no modal para reaproveitar o conteúdo e o tamanho de
+um card. **Modelos de cards** na toolbar permite criar, editar, remover modelos
+e gerar novos cards a partir deles. Nomes devem ser preenchidos e únicos naquele
+canvas. Os modelos são salvos no campo opcional `cardTemplates` do arquivo
+`.canvas`: arquivos antigos sem esse campo continuam abrindo normalmente.
+Alterar ou remover um modelo não modifica os cards já criados. Os modelos não
+são globais; acompanham apenas o arquivo que os contém.
+
+As alterações usam autosave; **Salvar canvas** e a opção **Salvar** do board
+permitem salvar imediatamente. Alterações já aplicadas também são enviadas ao
+arquivo original ao sair da seção ou trocar de arquivo. Edições ainda no
+formulário de um modal só são aplicadas ao confirmar. Escritas concorrentes são
+serializadas, e erros de leitura/validação são exibidos sem substituir o arquivo
+por dados de exemplo. A validação cobre estrutura, IDs duplicados e referências
+de conexões; não é um sistema de migrações/versionamento de schemas.
+
+### Evolução e próximos passos
+
+- [x] Seletor nativo de workspace e catálogo inicial de templates de games.
+- [x] Criar, renomear, ordenar e remover colunas do board com transferência
+  explícita de cards, nesta mesma branch.
+- [x] Modelos reutilizáveis de cards por arquivo Canvas e conteúdo completo em
+  modal por duplo clique ou botão acessível, nesta mesma branch.
+- [ ] Futuro, fora do escopo atual: preferências de cores, fontes e aparência
+  global, com contraste acessível e opção de restaurar os padrões.
+- [ ] Próxima melhoria de base: versionamento de schemas e migrações explícitas.
+
+Antes de ampliar a personalização, aprofundar a validação e o versionamento dos
+arquivos persistidos, migrações compatíveis e testes de salvar/reabrir. Separar
+preferências do aplicativo das configurações de cada board/canvas evita que
+alterações globais modifiquem o conteúdo de projetos existentes.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -74,7 +154,7 @@ O **Game Dev Hub** é uma suíte de ferramentas de produtividade especialmente p
 
 ### Pré-requisitos
 
-- **Node.js** (versão 18 ou superior)
+- **Node.js** 22.12+ na linha 22, 24.x ou 26+ (compatível com o Vitest atual; CI usa a linha 22)
 - **npm** ou **yarn**
 - **Rust** (1.70 ou superior)
 - **Tauri CLI**
@@ -126,6 +206,9 @@ npm run dev
 # Build do frontend
 npm run build
 
+# Testes de regressão do frontend
+npm test
+
 # Preview do build
 npm run preview
 
@@ -145,14 +228,39 @@ npm ci
 # Verificação TypeScript e build do frontend
 npm run build
 
+# Templates, workspace, personalização, persistência e autosave
+npm test
+
+# Testes da preparação de releases
+node --test .github/scripts/prepare-release.test.mjs
+
 # Auditoria das dependências de produção
 npm audit --omit=dev
 ```
 
-O projeto ainda não possui uma suíte de testes automatizados nem um script de lint.
+Os testes de frontend usam Vitest e Testing Library. A seleção de pasta é
+testada com mocks das APIs nativas; isso não substitui a verificação do diálogo
+no desktop. O workflow **Frontend checks** executa testes, TypeScript/build e os
+testes da preparação de releases em cada PR. Ainda não há script de lint.
+
 Para verificar os fluxos desktop, execute `npm run tauri:dev` e confira:
 
-- Selecione uma pasta no Explorer e crie um documento, um quadro Kanban e um Canvas.
+- Abra o seletor de pasta no Explorer, selecione uma pasta e confira a árvore de arquivos.
+- Abra o seletor novamente e cancele: o workspace deve permanecer inalterado.
+- Troque de pasta, reinicie o app e confira a restauração; em caso de falha de acesso, confira o alerta.
+- Crie um GDD, um Game Production Board e um Core Gameplay Loop pela Home e pelo Explorer.
+- Busque templates por tags, alterne os tipos e reabra o modal: não deve haver seleção de um tipo anterior.
+- Edite e reabra os arquivos criados; crie outro arquivo com o mesmo modelo e confira que ele não herdou as edições.
+- No board, adicione, renomeie e reordene colunas; remova uma coluna com cards
+  escolhendo um destino e confira que os cards foram preservados ao reabrir.
+- Abra um card do canvas por duplo clique e pelo teclado; confira o conteúdo
+  completo, a edição, o cancelamento, Escape e o retorno de foco.
+- Salve um card como modelo, crie outro card a partir dele e altere a cópia:
+  o original e o modelo devem permanecer independentes.
+- Edite/remova modelos, salve e reabra o canvas; outro canvas não deve herdá-los.
+- Troque de arquivo logo após uma alteração aplicada e confira que ela foi
+  salva apenas no arquivo original.
+- Tente abrir um `.kanban`/`.canvas` inválido e confira o erro sem sobrescrita.
 - Alterne entre os módulos: cada um deve restaurar seu próprio último arquivo; módulos sem arquivo devem mostrar o estado vazio.
 - Volte à Home: a seção de continuidade deve mostrar os últimos arquivos abertos em cada módulo, sem dados de exemplo.
 - Renomeie ou exclua um arquivo no Explorer e confira as sessões; excluir outro arquivo não deve fechar o documento ativo.

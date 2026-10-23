@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { KanbanData } from '../types/kanban';
+import type { CanvasCardTemplate, CanvasNodeData } from '../types/canvas';
+import { parseCanvasData, parseKanbanData } from './fileValidation';
 
 export interface FileMetadata {
   name: string;
@@ -11,12 +13,13 @@ export interface FileMetadata {
 
 export interface CanvasData {
   title: string;
+  cardTemplates?: CanvasCardTemplate[];
   nodes: Array<{
     id: string;
     type: string;
     position: { x: number; y: number };
     style: { width: number; height: number };
-    data: any;
+    data: CanvasNodeData;
   }>;
   edges: Array<{
     id: string;
@@ -34,12 +37,37 @@ export interface CanvasData {
 
 class FileService {
   private static instance: FileService;
+  private pendingWrites = new Map<string, Promise<void>>();
 
   static getInstance(): FileService {
     if (!FileService.instance) {
       FileService.instance = new FileService();
     }
     return FileService.instance;
+  }
+
+  private fileKey(path: string): string {
+    return path.replace(/\\/g, '/');
+  }
+
+  private async writeContent(filePath: string, content: string): Promise<void> {
+    const key = this.fileKey(filePath);
+    const previous = this.pendingWrites.get(key);
+    const write = () => invoke<void>('write_file_content', { filePath, content });
+    // A new editor may mount while the previous editor is still flushing this file.
+    const pending = previous ? previous.then(write, write) : write();
+    this.pendingWrites.set(key, pending);
+    try {
+      await pending;
+    } finally {
+      if (this.pendingWrites.get(key) === pending) this.pendingWrites.delete(key);
+    }
+  }
+
+  private async readContent(filePath: string): Promise<string> {
+    const key = this.fileKey(filePath);
+    while (this.pendingWrites.has(key)) await this.pendingWrites.get(key);
+    return invoke<string>('read_file_content', { filePath });
   }
 
   // Detectar tipo de arquivo pela extensão
@@ -62,10 +90,7 @@ class FileService {
   async createKanbanFile(path: string, data: KanbanData): Promise<void> {
     try {
       const content = JSON.stringify(data, null, 2);
-      await invoke('write_file_content', { 
-        filePath: path.endsWith('.kanban') ? path : `${path}.kanban`,
-        content 
-      });
+      await this.writeContent(path.endsWith('.kanban') ? path : `${path}.kanban`, content);
     } catch (error) {
       console.error('Error creating kanban file:', error);
       throw error;
@@ -75,8 +100,8 @@ class FileService {
   // Carregar arquivo Kanban
   async loadKanbanFile(path: string): Promise<KanbanData> {
     try {
-      const content = await invoke<string>('read_file_content', { filePath: path });
-      return JSON.parse(content);
+      const content = await this.readContent(path);
+      return parseKanbanData(JSON.parse(content));
     } catch (error) {
       console.error('Error loading kanban file:', error);
       throw error;
@@ -87,10 +112,7 @@ class FileService {
   async createCanvasFile(path: string, data: CanvasData): Promise<void> {
     try {
       const content = JSON.stringify(data, null, 2);
-      await invoke('write_file_content', { 
-        filePath: path.endsWith('.canvas') ? path : `${path}.canvas`,
-        content 
-      });
+      await this.writeContent(path.endsWith('.canvas') ? path : `${path}.canvas`, content);
     } catch (error) {
       console.error('Error creating canvas file:', error);
       throw error;
@@ -100,8 +122,8 @@ class FileService {
   // Carregar arquivo Canvas
   async loadCanvasFile(path: string): Promise<CanvasData> {
     try {
-      const content = await invoke<string>('read_file_content', { filePath: path });
-      return JSON.parse(content);
+      const content = await this.readContent(path);
+      return parseCanvasData(JSON.parse(content));
     } catch (error) {
       console.error('Error loading canvas file:', error);
       throw error;
@@ -111,10 +133,7 @@ class FileService {
   // Salvar arquivo Markdown
   async saveMarkdownFile(path: string, content: string): Promise<void> {
     try {
-      await invoke('write_file_content', { 
-        filePath: path.endsWith('.md') ? path : `${path}.md`,
-        content 
-      });
+      await this.writeContent(path.endsWith('.md') ? path : `${path}.md`, content);
     } catch (error) {
       console.error('Error saving markdown file:', error);
       throw error;
@@ -124,7 +143,7 @@ class FileService {
   // Carregar arquivo Markdown
   async loadMarkdownFile(path: string): Promise<string> {
     try {
-      return await invoke<string>('read_file_content', { filePath: path });
+      return await this.readContent(path);
     } catch (error) {
       console.error('Error loading markdown file:', error);
       throw error;

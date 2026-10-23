@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, FileText, Layout, GitBranch, Search } from 'lucide-react';
 import TemplateService, { Template } from '../../services/TemplateService';
 import './TemplateModal.css';
@@ -23,7 +23,21 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
 
   const templateService = TemplateService.getInstance();
 
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedType(defaultType);
+      setSelectedTemplate(null);
+      setFileName('');
+      setSearchQuery('');
+    }
+  }, [isOpen, defaultType]);
+
   if (!isOpen) return null;
+
+  const selectType = (type: Template['type']) => {
+    setSelectedType(type);
+    setSelectedTemplate(null);
+  };
 
   const templates = templateService.getTemplatesByType(selectedType).filter(template =>
     template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -32,7 +46,7 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
   );
 
   const handleCreateFile = () => {
-    if (selectedTemplate && fileName.trim()) {
+    if (selectedTemplate?.type === selectedType && fileName.trim()) {
       onSelectTemplate(selectedTemplate, fileName.trim());
       onClose();
       // Reset form
@@ -83,21 +97,21 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
           <div className="type-selector">
             <button
               className={`type-btn ${selectedType === 'markdown' ? 'active' : ''}`}
-              onClick={() => setSelectedType('markdown')}
+              onClick={() => selectType('markdown')}
             >
               <FileText size={20} />
               Markdown
             </button>
             <button
               className={`type-btn ${selectedType === 'kanban' ? 'active' : ''}`}
-              onClick={() => setSelectedType('kanban')}
+              onClick={() => selectType('kanban')}
             >
               <Layout size={20} />
               Kanban
             </button>
             <button
               className={`type-btn ${selectedType === 'canvas' ? 'active' : ''}`}
-              onClick={() => setSelectedType('canvas')}
+              onClick={() => selectType('canvas')}
             >
               <GitBranch size={20} />
               Canvas
@@ -119,8 +133,10 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
           {/* Template Grid */}
           <div className="templates-grid">
             {templates.map((template) => (
-              <div
+              <button
+                type="button"
                 key={template.id}
+                aria-pressed={selectedTemplate?.id === template.id}
                 className={`template-card ${selectedTemplate?.id === template.id ? 'selected' : ''}`}
                 onClick={() => setSelectedTemplate(template)}
               >
@@ -137,7 +153,7 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
                   ))}
                 </div>
                 <div className="template-category">{template.category}</div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -171,7 +187,7 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
             <button
               className="create-btn"
               onClick={handleCreateFile}
-              disabled={!selectedTemplate || !fileName.trim()}
+              disabled={selectedTemplate?.type !== selectedType || !fileName.trim()}
             >
               Create File
             </button>
