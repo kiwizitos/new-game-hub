@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Layout, GitBranch, Plus, Clock, Folder } from 'lucide-react';
+import { FileText, Layout, GitBranch, Plus, Clock, Folder, ArrowUpRight, Gamepad2 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { AppView } from '../../types/app';
 import TemplateModal from '../modals/TemplateModal';
@@ -9,7 +9,7 @@ import { usePopup } from '../../contexts/PopupContext';
 import './HomeView.css';
 
 const HomeView: React.FC = () => {
-  const { switchToView, setSelectedFile } = useAppStore();
+  const { switchToView, setSelectedFile, viewSessions, currentFolder } = useAppStore();
   const { showAlert } = usePopup();
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [templateModalType, setTemplateModalType] = useState<'markdown' | 'kanban' | 'canvas'>('markdown');
@@ -40,11 +40,10 @@ const HomeView: React.FC = () => {
     },
   ];
 
-  const recentFiles = [
-    { name: 'Project Notes.md', type: 'markdown', lastModified: '2 hours ago' },
-    { name: 'Sprint Planning.kanban', type: 'kanban', lastModified: '1 day ago' },
-    { name: 'Ideas Map.canvas', type: 'canvas', lastModified: '3 days ago' },
-  ];
+  const recentFiles = features.flatMap((feature) => {
+    const path = viewSessions[feature.id];
+    return path ? [{ path, view: feature.id, name: path.split(/[\\/]/).pop(), type: fileService.getFileType(path) }] : [];
+  });
 
   const openTemplateModal = (type: 'markdown' | 'kanban' | 'canvas') => {
     setTemplateModalType(type);
@@ -56,7 +55,7 @@ const HomeView: React.FC = () => {
       const { currentFolder } = useAppStore.getState();
       
       if (!currentFolder) {
-        alert('Por favor, selecione uma pasta no explorador de arquivos primeiro.');
+        showAlert('Selecione uma pasta', 'Selecione uma pasta no explorador de arquivos antes de criar um documento.', 'warning');
         return;
       }
 
@@ -119,8 +118,13 @@ const HomeView: React.FC = () => {
   return (
     <div className="home-view" onContextMenu={(e) => e.preventDefault()}>
       <div className="home-header">
-        <h1 className="home-title">Welcome to Game Hub</h1>
-        <p className="home-subtitle">Your all-in-one workspace for notes, tasks, and ideas</p>
+        <div className="home-eyebrow"><Gamepad2 size={18} /> YOUR GAME DEVELOPMENT WORKSPACE</div>
+        <h1 className="home-title">Big ideas. Next steps.</h1>
+        <p className="home-subtitle">Plan your next game, organize the work, and bring your ideas together.</p>
+        <div className="workspace-location">
+          <Folder size={16} aria-hidden="true" />
+          <span>{currentFolder || 'Select a folder in Explorer to start your workspace'}</span>
+        </div>
       </div>
 
       <div className="home-content">
@@ -152,7 +156,8 @@ const HomeView: React.FC = () => {
           </h2>
           <div className="features-grid">
             {features.map((feature) => (
-              <div
+              <button
+                type="button"
                 key={feature.id}
                 className="feature-card"
                 onClick={() => switchToView(feature.id)}
@@ -161,9 +166,10 @@ const HomeView: React.FC = () => {
                 <div className="feature-icon">
                   <feature.icon size={32} />
                 </div>
-                <h3 className="feature-title">{feature.title}</h3>
-                <p className="feature-description">{feature.description}</p>
-              </div>
+                <span className="feature-title">{feature.title}</span>
+                <span className="feature-description">{feature.description}</span>
+                <span className="feature-open">Open workspace <ArrowUpRight size={16} /></span>
+              </button>
             ))}
           </div>
         </section>
@@ -172,21 +178,29 @@ const HomeView: React.FC = () => {
         <section className="home-section">
           <h2 className="section-title">
             <Clock size={20} />
-            Recent Files
+            Continue where you left off
           </h2>
           <div className="recent-files">
-            {recentFiles.map((file, index) => (
-              <div key={index} className="recent-file-card">
+            {recentFiles.length === 0 && (
+              <div className="recent-empty">
+                <Clock size={24} aria-hidden="true" />
+                <p>No files opened yet</p>
+                <span>Create a document or open a file from Explorer. Your last file in each workspace will appear here.</span>
+              </div>
+            )}
+            {recentFiles.map((file) => (
+              <button type="button" key={file.path} className="recent-file-card" onClick={() => switchToView(file.view)} title={file.path}>
                 <div className={`file-icon ${file.type}`}>
                   {file.type === 'markdown' && <FileText size={16} />}
                   {file.type === 'kanban' && <Layout size={16} />}
                   {file.type === 'canvas' && <GitBranch size={16} />}
                 </div>
-                <div className="file-info">
+                <span className="file-info">
                   <span className="file-name">{file.name}</span>
-                  <span className="file-modified">{file.lastModified}</span>
-                </div>
-              </div>
+                  <span className="file-modified">{file.path}</span>
+                </span>
+                <ArrowUpRight size={16} className="recent-file-arrow" aria-hidden="true" />
+              </button>
             ))}
           </div>
         </section>

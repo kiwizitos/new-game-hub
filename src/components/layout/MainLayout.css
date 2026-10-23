@@ -1,5 +1,6 @@
 /* Main Layout Styles */
 .main-layout {
+  position: relative;
   display: flex;
   height: 100%;
   width: 100%;
@@ -67,8 +68,13 @@
   flex-direction: column;
 }
 
+.sidebar-content[hidden] {
+  display: none;
+}
+
 /* Main Content */
 .main-content {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -88,9 +94,9 @@
   }
   
   .main-sidebar.collapsed {
-    transform: translateX(-100%);
-    width: 280px;
-    min-width: 280px;
+    position: static;
+    width: 48px;
+    min-width: 48px;
   }
 }
 

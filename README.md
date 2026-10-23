@@ -136,6 +136,36 @@ npm run tauri:dev
 npm run tauri:build
 ```
 
+### Verificação do workspace
+
+```bash
+# Instalação reproduzível das dependências
+npm ci
+
+# Verificação TypeScript e build do frontend
+npm run build
+
+# Auditoria das dependências de produção
+npm audit --omit=dev
+```
+
+O projeto ainda não possui uma suíte de testes automatizados nem um script de lint.
+Para verificar os fluxos desktop, execute `npm run tauri:dev` e confira:
+
+- Selecione uma pasta no Explorer e crie um documento, um quadro Kanban e um Canvas.
+- Alterne entre os módulos: cada um deve restaurar seu próprio último arquivo; módulos sem arquivo devem mostrar o estado vazio.
+- Volte à Home: a seção de continuidade deve mostrar os últimos arquivos abertos em cada módulo, sem dados de exemplo.
+- Renomeie ou exclua um arquivo no Explorer e confira as sessões; excluir outro arquivo não deve fechar o documento ativo.
+- Recolha e expanda o Explorer, reinicie o aplicativo e confira a preferência.
+- Alterne entre os temas claro e escuro e confira a navegação por teclado e o layout em janelas menores.
+- Edite, salve e reabra os arquivos para conferir a persistência de cada módulo.
+
+`npm run dev` permite conferir o visual no navegador, mas operações de arquivos
+e monitoramento dependem do runtime Tauri. No Linux, instale também os
+[pré-requisitos nativos do Tauri](https://v2.tauri.app/start/prerequisites/),
+incluindo as bibliotecas de desenvolvimento GTK/GLib e WebKitGTK, antes de
+executar `cargo test --manifest-path src-tauri/Cargo.toml --locked` ou compilar o aplicativo desktop.
+
 ## 📦 Build para Produção
 
 ### Build completo da aplicação

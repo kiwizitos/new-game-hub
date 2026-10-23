@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { AppView } from '../types/app';
 
+const fileView = (file: string | null): AppView | null => {
+  const extension = file?.split('.').pop()?.toLowerCase();
+  if (extension === 'md' || extension === 'markdown') return AppView.EDITOR;
+  if (extension === 'kanban') return AppView.KANBAN;
+  if (extension === 'canvas') return AppView.CANVAS;
+  return null;
+};
+
 interface AppStore {
   currentView: AppView;
   sidebarVisible: boolean;
@@ -50,9 +58,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setSelectedFile: (file) => {
+    const view = fileView(file);
+    if (view) get().setViewSession(view, file);
+    if (!file && get().selectedFile) {
+      const previousView = fileView(get().selectedFile);
+      if (previousView) get().setViewSession(previousView, null);
+    }
     set({ selectedFile: file });
     if (file) {
       localStorage.setItem('game-hub-selected-file', file);
+    } else {
+      localStorage.removeItem('game-hub-selected-file');
     }
   },
 
@@ -60,6 +76,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ currentFolder: folder });
     if (folder) {
       localStorage.setItem('game-hub-current-folder', folder);
+    } else {
+      localStorage.removeItem('game-hub-current-folder');
     }
   },
 
@@ -83,14 +101,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   switchToView: (view) => {
-    set({ currentView: view });
+    const selectedFile = get().viewSessions[view] || null;
+    set({ currentView: view, selectedFile });
     localStorage.setItem('game-hub-current-view', view);
-    
-    // Restaurar o último arquivo para esta view, se houver
-    const { viewSessions } = get();
-    const sessionFile = viewSessions[view];
-    if (sessionFile && view !== AppView.HOME) {
-      set({ selectedFile: sessionFile });
+    if (selectedFile) {
+      localStorage.setItem('game-hub-selected-file', selectedFile);
+    } else {
+      localStorage.removeItem('game-hub-selected-file');
     }
   },
 
@@ -108,18 +125,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({ sidebarVisible: savedSidebar === 'true' });
     }
 
-    if (savedFile) {
-      set({ selectedFile: savedFile });
-    }
-
     // Carregar sessões por view
     if (savedSessions) {
       try {
         const sessions = JSON.parse(savedSessions);
-        set({ viewSessions: sessions });
+        if (sessions && typeof sessions === 'object') {
+          for (const view of [AppView.EDITOR, AppView.KANBAN, AppView.CANVAS]) {
+            const file = sessions[view];
+            get().setViewSession(view, typeof file === 'string' && fileView(file) === view ? file : null);
+          }
+        }
       } catch (error) {
         console.warn('Failed to parse view sessions from localStorage:', error);
       }
     }
+    if (!savedSessions && savedFile && fileView(savedFile)) {
+      get().setViewSession(fileView(savedFile)!, savedFile);
+    }
+    set({ currentFolder: localStorage.getItem('game-hub-current-folder') });
+    get().switchToView(get().currentView);
   },
 }));
